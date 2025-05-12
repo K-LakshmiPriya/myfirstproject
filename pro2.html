@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en"> 
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emoji Mood Tracker with Pie and Bar Charts</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f8ff;
+            display: flex;
+            justify-content: space-between; /* Flexbox to separate the form and charts */
+            align-items: flex-start;
+            height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        .emoji-group {
+            display: flex;
+            justify-content: center; /* Center buttons horizontally */
+            margin: 20px 0;
+        }
+
+        .emoji-group button {
+            font-size: 40px; /* Larger button size */
+            padding: 15px;
+            margin: 10px;
+            background-color: white;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            cursor: pointer;
+            flex: 1; /* Make buttons stretch to fill space */
+        }
+
+        .emoji-group button:hover {
+            border-color: #007BFF;
+            background-color: #f0f0f0;
+        }
+
+        .mood-heading {
+            font-size: 18px;
+            font-weight: bold;
+            color: #555;
+            margin-top: 5px;
+        }
+
+        .emoji-labels {
+            display: flex;
+            justify-content: space-between;
+            text-align: center;
+        }
+
+        .emoji-labels div {
+            flex: 1; /* Make labels align with buttons */
+        }
+
+        button[type="submit"] {
+            padding: 12px 24px;
+            font-size: 18px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        button[type="submit"]:hover {
+            background-color: #0056b3;
+        }
+
+        .footer {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #999;
+        }
+
+        #status {
+            margin-top: 20px;
+            font-size: 16px;
+            color: green;
+        }
+
+        .chart-container {
+            width: 400px;
+            height: 400px;
+        }
+
+        .chart-wrapper {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            flex-wrap: wrap;
+        }
+
+        .chart-container-large {
+            width: 600px;
+            height: 400px;
+        }
+    </style>
+    <!-- Include Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Function to store mood in localStorage
+        function selectEmoji(emoji) {
+            const now = new Date();
+            const timestamp = now.toLocaleString();
+            const moodEntry = `${timestamp} - Mood: ${emoji}`;
+            
+            // Save the mood entry in localStorage
+            let moodHistory = localStorage.getItem('moodHistory');
+            if (!moodHistory) {
+                moodHistory = [];
+            } else {
+                moodHistory = JSON.parse(moodHistory);
+            }
+            moodHistory.push(moodEntry);
+            localStorage.setItem('moodHistory', JSON.stringify(moodHistory));
+
+            // Display confirmation
+            document.getElementById('status').innerText = 'Mood entry saved!';
+
+            // Update the charts
+            updateCharts();
+        }
+
+        // Function to load previous mood entries
+        function loadMoodHistory() {
+            const moodHistory = JSON.parse(localStorage.getItem('moodHistory'));
+            if (moodHistory && moodHistory.length > 0) {
+                let historyHtml = '<h3>Your Mood History</h3>';
+                moodHistory.forEach(entry => {
+                    historyHtml += `<p>${entry}</p>`;
+                });
+                document.getElementById('history').innerHTML = historyHtml;
+            } else {
+                document.getElementById('history').innerText = 'No mood history found.';
+            }
+
+            // Initialize the charts
+            initializeCharts();
+        }
+
+        // Function to clear mood history from localStorage
+        function clearHistory() {
+            // Clear localStorage
+            localStorage.removeItem('moodHistory');
+
+            // Clear the displayed history
+            document.getElementById('history').innerText = 'No mood history found.';
+
+            // Clear status message
+            document.getElementById('status').innerText = 'Mood history cleared!';
+
+            // Update the charts
+            updateCharts();
+        }
+
+        // Initialize charts
+        let moodChart, awarenessChart, barChart;
+
+        function initializeCharts() {
+            const ctxMood = document.getElementById('moodChart').getContext('2d');
+            const ctxAwareness = document.getElementById('awarenessChart').getContext('2d');
+            const ctxBar = document.getElementById('barChart').getContext('2d');
+
+            // Mood Pie Chart with distinct colors
+            moodChart = new Chart(ctxMood, {
+                type: 'pie',
+                data: {
+                    labels: ['Happy', 'Sad', 'Angry', 'Cool', 'Excited'],
+                    datasets: [{
+                        data: [0, 0, 0, 0, 0],
+                        backgroundColor: ['#FFD700', '#00BFFF', '#FF6347', '#32CD32', '#FF69B4'],
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        title: {
+                            display: true,
+                            text: 'Mood Distribution'
+                        }
+                    }
+                }
+            });
+
+            // Awareness Pie Chart with distinct colors
+            awarenessChart = new Chart(ctxAwareness, {
+                type: 'pie',
+                data: {
+                    labels: ['Happiness', 'Depression', 'Anger Issues', 'Confidence', 'Love'],
+                    datasets: [{
+                        data: [0, 0, 0, 0, 0],
+                        backgroundColor: ['#FF8C00', '#FF4500', '#8A2BE2', '#32CD32', '#D2691E'],
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        title: {
+                            display: true,
+                            text: 'Mental Health Awareness'
+                        }
+                    }
+                }
+            });
+
+            // Bar Chart for Mood and Awareness Comparison with distinct colors
+            barChart = new Chart(ctxBar, {
+                type: 'bar',
+                data: {
+                    labels: ['Happy', 'Sad', 'Angry', 'Cool', 'Excited'],
+                    datasets: [
+                        {
+                            label: 'Mood Counts',
+                            data: [0, 0, 0, 0, 0],
+                            backgroundColor: ['#FFD700', '#00BFFF', '#FF6347', '#32CD32', '#FF69B4']
+                        },
+                        {
+                            label: 'Mental Health Conditions',
+                            data: [0, 0, 0, 0, 0],
+                            backgroundColor: ['#FF8C00', '#FF4500', '#8A2BE2', '#32CD32', '#D2691E']
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        title: {
+                            display: true,
+                            text: 'Mood and Awareness Comparison'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            // Update the charts with actual data
+            updateCharts();
+        }
+
+        // Function to update charts with current mood history
+        function updateCharts() {
+            const moodHistory = JSON.parse(localStorage.getItem('moodHistory'));
+            if (!moodHistory) return;
+
+            // Count occurrences of each mood
+            const moodCounts = {
+                '😊': 0,
+                '😔': 0,
+                '😡': 0,
+                '😎': 0,
+                '😍': 0
+            };
+
+            // Count occurrences of mental health conditions related to each mood
+            const awarenessCounts = {
+                'Happiness': 0,
+                'Depression': 0,
+                'Anger Issues': 0,
+                'Confidence': 0,
+                'Love': 0
+            };
+
+            moodHistory.forEach(entry => {
+                if (entry.includes('😊')) {
+                    moodCounts['😊']++;
+                    awarenessCounts['Happiness']++;
+                } else if (entry.includes('😔')) {
+                    moodCounts['😔']++;
+                    awarenessCounts['Depression']++;
+                } else if (entry.includes('😡')) {
+                    moodCounts['😡']++;
+                    awarenessCounts['Anger Issues']++;
+                } else if (entry.includes('😎')) {
+                    moodCounts['😎']++;
+                    awarenessCounts['Confidence']++;
+                } else if (entry.includes('😍')) {
+                    moodCounts['😍']++;
+                    awarenessCounts['Love']++;
+                }
+            });
+
+            // Update mood chart
+            moodChart.data.datasets[0].data = [
+                moodCounts['😊'],
+                moodCounts['😔'],
+                moodCounts['😡'],
+                moodCounts['😎'],
+                moodCounts['😍']
+            ];
+            moodChart.update();
+
+            // Update awareness chart
+            awarenessChart.data.datasets[0].data = [
+                awarenessCounts['Happiness'],
+                awarenessCounts['Depression'],
+                awarenessCounts['Anger Issues'],
+                awarenessCounts['Confidence'],
+                awarenessCounts['Love']
+            ];
+            awarenessChart.update();
+
+            // Update bar chart
+            barChart.data.datasets[0].data = [
+                moodCounts['😊'],
+                moodCounts['😔'],
+                moodCounts['😡'],
+                moodCounts['😎'],
+                moodCounts['😍']
+            ];
+            barChart.data.datasets[1].data = [
+                awarenessCounts['Happiness'],
+                awarenessCounts['Depression'],
+                awarenessCounts['Anger Issues'],
+                awarenessCounts['Confidence'],
+                awarenessCounts['Love']
+            ];
+            barChart.update();
+        }
+
+        window.onload = loadMoodHistory;
+    </script>
+</head>
+<body>
+    <!-- Left side: Form -->
+    <div class="container">
+        <h1>Emoji Mood Tracker</h1>
+        <label for="mood">How are you feeling today? Choose an emoji:</label>
+        
+        <div class="emoji-group">
+            <button type="button" onclick="selectEmoji('😊')">😊</button>
+            <button type="button" onclick="selectEmoji('😔')">😔</button>
+            <button type="button" onclick="selectEmoji('😡')">😡</button>
+            <button type="button" onclick="selectEmoji('😎')">😎</button>
+            <button type="button" onclick="selectEmoji('😍')">😍</button>
+        </div>
+
+        <!-- Mood Headings Aligned Horizontally -->
+        <div class="emoji-labels">
+            <div class="mood-heading">Happy Mood</div>
+            <div class="mood-heading">Sad Mood</div>
+            <div class="mood-heading">Angry Mood</div>
+            <div class="mood-heading">Cool Mood</div>
+            <div class="mood-heading">Exciting Mood</div>
+        </div>
+
+        <!-- Status message after saving mood -->
+        <div id="status"></div>
+
+        <!-- Display mood history -->
+        <div id="history" style="margin-top: 20px;"></div>
+
+        <!-- Clear history button -->
+        <button type="button" onclick="clearHistory()">Clear History</button>
+
+        <div class="footer">
+            <p>Track your mood daily using emojis!</p>
+        </div>
+    </div>
+
+    <!-- Right side: Two Pie Charts and Bar Graph -->
+    <div class="chart-wrapper">
+        <div class="chart-container">
+            <canvas id="moodChart"></canvas>
+        </div>
+        <div class="chart-container">
+            <canvas id="awarenessChart"></canvas>
+        </div>
+        <div class="chart-container-large">
+            <canvas id="barChart"></canvas>
+        </div>
+    </div>
+<a href="file:///C:/Users/priya/OneDrive/Desktop/HTML%20tutorial/project%203.html"  target="_blank">suggession</a>
+</body>
+</html>
+ 

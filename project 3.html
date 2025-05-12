@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mood Meter</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f0f8ff;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Align the items to the top */
+            flex-direction: column;
+            overflow-y: auto; /* Allow vertical scrolling */
+        }
+
+        .container {
+            text-align: center;
+            max-width: 600px;
+            width: 100%;
+            padding: 20px; /* Add some padding so content doesn't touch edges */
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 40px;
+        }
+
+        .speedometer-container {
+            position: relative;
+            width: 300px;
+            height: 150px;
+            margin: 0 auto;
+        }
+
+        .gauge {
+            width: 100%;
+            height: 100%;
+            background: conic-gradient(
+                #ff6361 0%,
+                #ffa600 33%,
+                #bc5090 66%,
+                #003f5c 100%
+            );
+            border-radius: 150px 150px 0 0;
+            clip-path: ellipse(100% 100% at 50% 100%);
+        }
+
+        .needle {
+            position: absolute;
+            bottom: 0;
+            left: calc(50% - 5px);
+            width: 10px;
+            height: 120px;
+            background-color: red;
+            transform-origin: bottom;
+            transition: transform 0.5s ease-in-out;
+        }
+
+        .section {
+            margin-top: 20px;
+            text-align: left;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .history-section, .feedback-section, .tips-section {
+            margin-top: 20px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .section-content {
+            font-size: 16px;
+            color: #555;
+        }
+
+        button {
+            padding: 12px 20px;
+            font-size: 16px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .mood-image {
+            width: 50px;
+            height: 50px;
+            margin-left: 10px;
+        }
+
+        /* Horizontal button container */
+        .button-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        /* Mood Intensity slider */
+        .intensity-container {
+            margin-top: 20px;
+        }
+
+        .intensity-container label,
+        .intensity-container span {
+            font-size: 16px;
+            color: #555;
+        }
+
+        .canvas-container {
+            width: 100%;
+            max-width: 600px;
+            margin-top: 30px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>Mood Meter</h1>
+
+        <div class="speedometer-container">
+            <div class="gauge"></div>
+            <div class="needle" id="needle"></div>
+        </div>
+
+        <!-- Mood Intensity -->
+        <div class="intensity-container">
+            <label for="mood-intensity">Mood Intensity (1-10):</label>
+            <input type="range" id="mood-intensity" min="1" max="10" value="5" />
+            <span id="intensity-value">5</span>
+        </div>
+
+        <!-- Mood History Section -->
+        <div class="section history-section">
+            <div class="section-title">Mood History</div>
+            <div class="section-content" id="history-text">No mood history available.</div>
+        </div>
+
+        <!-- Feedback Section -->
+        <div class="section feedback-section">
+            <div class="section-title">Feedback</div>
+            <div class="section-content" id="feedback-text">No feedback yet. Log your mood!</div>
+        </div>
+
+        <!-- Tips Section -->
+        <div class="section tips-section">
+            <div class="section-title">Tip of the Day</div>
+            <div class="section-content" id="tip-text">Start tracking your mood daily for personalized feedback!</div>
+        </div>
+
+        <!-- Buttons to log moods -->
+        <div class="button-container">
+            <button onclick="logMood('happy')">
+                Log Happy Mood
+                <img class="mood-image" src="https://img.icons8.com/ios/452/happy.png" alt="Happy Mood">
+            </button>
+            <button onclick="logMood('sad')">
+                Log Sad Mood
+                <img class="mood-image" src="https://img.icons8.com/ios/452/sad.png" alt="Sad Mood">
+            </button>
+            <button onclick="logMood('angry')">
+                Log Angry Mood
+                <img class="mood-image" src="https://img.icons8.com/ios/452/angry.png" alt="Angry Mood">
+            </button>
+            <button onclick="clearHistory()">Clear History</button> <!-- Clear History Button -->
+        </div>
+
+        <!-- Mood History Chart -->
+        <div class="canvas-container">
+            <canvas id="moodChart"></canvas>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        // Initialize Mood Needle
+        const needle = document.getElementById('needle');
+        const intensitySlider = document.getElementById('mood-intensity');
+        const intensityValue = document.getElementById('intensity-value');
+
+        // Mood chart setup using Chart.js
+        const ctx = document.getElementById('moodChart').getContext('2d');
+        const moodChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Mood Intensity',
+                    data: [],
+                    borderColor: 'rgb(75, 192, 192)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        min: 0,
+                        max: 10
+                    }
+                }
+            }
+        });
+
+        // Update intensity value when slider changes
+        intensitySlider.addEventListener('input', function () {
+            intensityValue.textContent = intensitySlider.value;
+        });
+
+        // Function to rotate needle based on mood
+        function rotateNeedle(mood) {
+            let angle = 0;
+            if (mood === 'happy') {
+                angle = -30;
+                document.body.style.backgroundColor = "#D3F9D8"; // Light green for happy
+                needle.style.backgroundColor = "green"; // Green needle for happy
+            } else if (mood === 'sad') {
+                angle = 0;
+                document.body.style.backgroundColor = "#C6D6E8"; // Light blue for sad
+                needle.style.backgroundColor = "blue"; // Blue needle for sad
+            } else if (mood === 'angry') {
+                angle = 30;
+                document.body.style.backgroundColor = "#F0A6A6"; // Light red for angry
+                needle.style.backgroundColor = "red"; // Red needle for angry
+            }
+            needle.style.transform = `rotate(${angle}deg)`;
+        }
+
+        // Function to log mood
+        let moodHistory = [];
+        let currentMood = '';
+
+        function logMood(mood) {
+            const now = new Date();
+            const intensity = intensitySlider.value;
+            moodHistory.push({ mood, time: now.toLocaleString(), intensity });
+            currentMood = mood;  // Save current mood
+            updateHistory();
+            giveFeedback(mood);
+            rotateNeedle(mood);
+            updateTip(mood);  // Update tip based on current mood
+            updateChart(mood, intensity);  // Update chart with new mood
+        }
+
+        // Update the mood history
+        function updateHistory() {
+            const historyText = document.getElementById('history-text');
+            if (moodHistory.length === 0) {
+                historyText.textContent = "No mood history available.";
+            } else {
+                historyText.innerHTML = moodHistory.map(entry => `<p>${entry.time}: ${entry.mood} (Intensity: ${entry.intensity})</p>`).join('');
+            }
+        }
+
+        // Provide feedback based on mood
+        function giveFeedback(mood) {
+            const feedbackText = document.getElementById('feedback-text');
+            if (mood === 'happy') {
+                feedbackText.textContent = "Great! Keep up the positive vibes!";
+            } else if (mood === 'sad') {
+                feedbackText.textContent = "It's okay to feel sad sometimes. Consider talking to someone.";
+            } else if (mood === 'angry') {
+                feedbackText.textContent = "Take a deep breath, and try to calm down.";
+            }
+        }
+
+        // Function to clear history
+        function clearHistory() {
+            moodHistory = [];
+            updateHistory();
+            moodChart.data.labels = [];
+            moodChart.data.datasets[0].data = [];
+            moodChart.update();
+        }
+
+        // Function to update the tip based on the current mood
+        function updateTip(mood) {
+            const tips = {
+                happy: "You're doing great! Keep up the positivity!",
+                sad: "Take it easy, self-care matters.",
+                angry: "Try to relax and take a step back."
+            };
+            const randomTip = tips[mood];
+            document.getElementById('tip-text').textContent = randomTip;
+        }
+
+        // Update the chart with mood and intensity
+        function updateChart(mood, intensity) {
+            const now = new Date();
+            moodChart.data.labels.push(now.toLocaleTimeString());
+            moodChart.data.datasets[0].data.push(intensity);
+            moodChart.update();
+        }
+
+        // Load a random tip when page loads
+        window.onload = function () {
+            updateTip(currentMood);  // Update tip based on last logged mood
+        };
+    </script>
+</body>
+
+</html>
